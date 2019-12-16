@@ -52,7 +52,7 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 @TeleOp(name = "Concept: TensorFlow Object Detection Webcam", group = "Concept")
 @Disabled
 public class ConceptTensorFlowObjectDetectionWebcam extends LinearOpMode {
-    private static final String TFOD_MODEL_ASSET = "model.tflite";
+    private static final String TFOD_MODEL_ASSET = "org/firstinspires/ftc/teamcode/model.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Stone";
     private static final String LABEL_SECOND_ELEMENT = "Skystone";
 
