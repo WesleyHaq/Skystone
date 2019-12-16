@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -13,13 +13,13 @@ import java.util.List;
 
 @Autonomous(name="tensorflow",group="autonomous")
 public class auto extends LinearOpMode{
-    MecanumConfig robot = new MecanumConfig();
-    MecanumDrive drive = new MecanumDrive(robot);
+    //Config robot = new Config();
+    //Drive drive = new Drive(robot);
 
 
-    private static final String TFOD_MODEL_ASSET = "model.tflite";
+    private static final String TFOD_MODEL_ASSET = "org/firstinspires/ftc/teamcode/model.tflite";
     private static final String LABEL_FIRST_ELEMENT = "Skystone";
-//  private static final String LABEL_SECOND_ELEMENT = "Stone";
+    //private static final String LABEL_SECOND_ELEMENT = "Stone";
 
     private static final String VUFORIA_KEY =
             "AahhGez/////AAABmSIunC5QeUbDmqSuN/JVvK5jcN03J60dszlHmZqGkfuUkUVQsH4/YxQk1A+Rg/DlMP1LwU5U/g4EW5+j6271bFI0ZWGQScblmtv/MVEAgzJqZdZkHl/ZS8qgIDkPDzKJLCJwz9qtN6fKZJ5FC0uxuQ9vHblm5dyr0iIAUM78c6Wc2fzqDmTm3WuOFbBthCKJRJNpfhUn9CyA1Wdev+LzIbotSs++L3a9O4ekv1/NKi5Khujw3L2i1IxY8M2hZlTYfeCn57W4bCxnfSWChH0yNv7G5gk3jyMP5d8pR1XtqDu4kqx+dQ2/Fq+M9Fdun8nfE5peCIVk592Ul+sjhC5Nr8FQZIFfxoAJIAWu3o4QizOb\n";
@@ -31,7 +31,7 @@ public class auto extends LinearOpMode{
     @Override
     public void runOpMode() {
 
-        robot.init(hardwareMap);
+        //robot.init(hardwareMap);
 
         initVuforia();
 
@@ -71,7 +71,7 @@ public class auto extends LinearOpMode{
                                     recognition.getLeft(), recognition.getTop());
                             telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
                                     recognition.getRight(), recognition.getBottom());
-                            drive.angleDrive(90, (recognition.getRight()-100)/100);
+                            //drive.angleDrive(90, (recognition.getRight()-100)/100);
                         }
                         telemetry.update();
                     }
@@ -102,19 +102,14 @@ public class auto extends LinearOpMode{
     }
 
     private void initTfod() {
-        try {
-            int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                     "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
 
-            TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-            tfodParameters.minimumConfidence = 0.8;
-            tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-            tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT);
-        } catch (Exception e) {
-            telemetry.addData("exception", e.getMessage());
-
-        }
-
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minimumConfidence = 0.8;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromFile(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT);
 
     }
 }

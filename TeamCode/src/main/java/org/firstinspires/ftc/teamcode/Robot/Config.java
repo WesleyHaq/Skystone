@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Robot;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -16,7 +16,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 import java.util.Base64;
 
-public class MecanumConfig {
+public class Config {
 
     public DcMotor frontLeft  = null;
     public DcMotor backLeft   = null;
@@ -37,7 +37,7 @@ public class MecanumConfig {
     public double                  globalAngle;
 
 
-    public MecanumConfig() {}
+    public Config() {}
 
     public void init(HardwareMap ahwMap) {
         hwMap = ahwMap;

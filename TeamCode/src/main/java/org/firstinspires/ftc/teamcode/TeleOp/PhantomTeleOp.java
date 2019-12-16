@@ -1,31 +1,24 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.teamcode.Robot.Config;
 
-@TeleOp(name = "New TeleOP")
-public class MecanumTeleOp extends LinearOpMode {
+@TeleOp(name = "Phantom TeleOp")
+public class PhantomTeleOp extends LinearOpMode {
 
-    MecanumConfig robot = new MecanumConfig();
+    Config robot = new Config();
 
     double frontLeft;
     double frontRight;
     double backLeft;
     double backRight;
     double side;
-    double oldAngle;
 
     boolean pressed = false;
 
     double power = 0.5;
-    boolean inverted;
-    boolean released = true;
 
     @Override
     public void runOpMode() {
