@@ -6,19 +6,23 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.teamcode.AutoSide.BlueAuto;
-import org.firstinspires.ftc.teamcode.AutoSide.IAuto;
 
 import java.lang.Math;
 
 
 public class Drive extends Config {
 
+    public LinearOpMode opMode;
+
+    public Drive(LinearOpMode opMode) {
+        this.opMode = opMode;
+    }
+
     //runtime is the timer
     private ElapsedTime runtime = new ElapsedTime();
 
     //lastAngles is used in the checkDirection() method
-    public Orientation lastAngles = new Orientation();
+    public double lastAngles;
 
     PositionTracking tracker = new PositionTracking();
 
@@ -35,33 +39,28 @@ public class Drive extends Config {
     private double currentAngle = 0;
     //variable used for IMU direction correction
     double checkAngle;
+    double setAngle = 0;
 
     //not used yet. Maybe later.
     double ROBOT_WEIGHT_KG = 10;
     double WHEEL_FRICTION = 3;
 
+    int COUNTS_PER_REVOLUTION = 1440;
+    double WHEEL_DIAMETER_INCHES = 1.5;
+
     //calculate distance based on encoder counts
     public double encoderDistanceY1() {
-        double WHEEL_DIAMETER = 1.5;
-        int COUNTS_PER_REVOLUTION = 1000;
-
         //The encoder will be plugged into the same port as the frontLeft motor
-        return frontLeft.getCurrentPosition() * 3.1415926535 * WHEEL_DIAMETER / COUNTS_PER_REVOLUTION;
+        return frontLeft.getCurrentPosition() * 3.1415926535 * WHEEL_DIAMETER_INCHES / COUNTS_PER_REVOLUTION;
     }
     public double encoderDistanceY2() {
-        double WHEEL_DIAMETER = 1.5;
-        int COUNTS_PER_REVOLUTION = 1000;
-
         //The encoder will be plugged into the same port as the frontRight motor
-        return frontRight.getCurrentPosition() * 3.1415926535 * WHEEL_DIAMETER / COUNTS_PER_REVOLUTION;
+        return frontRight.getCurrentPosition() * 3.1415926535 * WHEEL_DIAMETER_INCHES / COUNTS_PER_REVOLUTION;
     }
 
     public double encoderDistanceX() {
-        double WHEEL_DIAMETER = 1.5;
-        int COUNTS_PER_REVOLUTION = 1000;
-
         //The encoder will be plugged into the same port as the frontRight motor
-        return backLeft.getCurrentPosition() * 3.1415926535 * WHEEL_DIAMETER / COUNTS_PER_REVOLUTION;
+        return backLeft.getCurrentPosition() * 3.1415926535 * WHEEL_DIAMETER_INCHES / COUNTS_PER_REVOLUTION;
     }
 
     public double encoderDistanceY() {
@@ -141,10 +140,10 @@ public class Drive extends Config {
         //Change angle by 45
         angle = angle + 45;
 
-        frontRight.setPower(Math.sin(Math.toRadians(angle)) * power - checkDirection());
-        frontLeft.setPower(Math.cos(Math.toRadians(angle)) * power + checkDirection());
-        backRight.setPower(Math.cos(Math.toRadians(angle)) * power - checkDirection());
-        backLeft.setPower(Math.sin(Math.toRadians(angle)) * power + checkDirection());
+        frontRight.setPower(Math.sin(angle) * power - checkDirection());
+        frontLeft.setPower(Math.cos(angle) * power + checkDirection());
+        backRight.setPower(Math.cos(angle) * power - checkDirection());
+        backLeft.setPower(Math.sin(angle) * power + checkDirection());
     }
 
     public void relativeDrive(double angle, double distance, double power) {
@@ -159,27 +158,43 @@ public class Drive extends Config {
 
 
     //Drive to a point on the robot
-    public void pointDrive(double xPos, double yPos, double power, double timoutS) {
+    public void pointDrive(double xPos, double yPos, double power) {
         double rX = xPos - robot.x;
         double rY = yPos - robot.y;
         double distance = Math.sqrt(Math.pow(rX, 2) + Math.pow(rY, 2));
-        double angle = Math.atan(rY / rX);
-        angleDrive(Math.toDegrees(angle), power);
+        double angle = Math.atan2(rY, rX) - currentAngle;
+        angle -= Math.PI/4;
+
+
+        frontLeft.setPower(Math.cos(angle) * power + checkDirection());
+        frontRight.setPower(Math.sin(angle) * power - checkDirection());
+        backLeft.setPower(Math.sin(angle) * power + checkDirection());
+        backRight.setPower(Math.cos(angle) * power - checkDirection());
     }
 
-    public void runPath(PointArray pointList, double power, double drift) {
+    public void pointDrive(Point point, double power) {
+        double rX = point.x - robot.x;
+        double rY = point.y - robot.y;
+        double angle = Math.atan2(rY, rX) - (currentAngle - Math.PI/2);
+        double powX = Math.cos(angle);
+        double powY = Math.sin(angle) * 0.65;
+
+        double maximizer = power / (Math.abs(powX) + Math.abs(powY));
+
+        frontLeft.setPower(maximizer*(powY + powX) + checkDirection());
+        frontRight.setPower(maximizer*(powY - powX) - checkDirection());
+        backLeft.setPower(maximizer*(powY - powX) + checkDirection());
+        backRight.setPower(maximizer*(powY + powX) - checkDirection());
+    }
+
+    public void runPath(Path pointList, double power, double drift) {
+        motorsOn();
+
         boolean driving = true;
-        double accel = 0;
         double velX = 0;
         double velY = 0;
-        double lastVelX = 0;
-        double lastVelY = 0;
-        double lastX = 0;
-        double lastY = 0;
-        double driveAngle;
-        double pathSlope;
-        double crossDist;
 
+        Point crossDist = new Point(0,0);
         Point target = new Point(0,0);
         Point stopPoint = new Point(0,0);
 
@@ -187,54 +202,151 @@ public class Drive extends Config {
         Line robotLine = new Line(0, 0);
 
         int currentPoint = 0;
-        Point pointOne = pointList.get(0);
-        Point pointTwo = pointList.get(1);
+        Point pointOne = robot;
+        Point pointTwo = pointList.get(0);
 
-        while (driving) {
+        while (driving && !opMode.isStopRequested()) {
+            try {
 
-            target.x = pointTwo.x;
-            target.y = pointTwo.y;
+                target.setPoint(pointTwo);
 
-            pathSlope = (pointTwo.y - pointOne.y) / (pointTwo.x - pointOne.x);
+                pathLine.setLine(pointOne, pointTwo);
 
-            pathLine.setLine(pointOne, pointTwo);
-            robotLine.setLine(robot, -1/pathSlope);
-
-            stopPoint.setX(0.5 * (Math.pow(velX, 2) * drift));
-            stopPoint.setY(0.5 * (Math.pow(velY, 2) * drift));
-
-            target.x -= stopPoint.x;
-            target.y -= stopPoint.y;
-
-
-            crossDist = Math.sqrt(Math.pow((robot.x - pathLine.intersection(robotLine).x), 2) + Math.pow(robot.y - pathLine.intersection(robotLine).y, 2));
-            driveAngle = (Math.atan(target.y / target.x)/drift + (-1/pathSlope)*crossDist*drift)/(drift + 1/drift);
-            angleDrive(driveAngle, power);
-
-
-
-            if (robot.y+stopPoint.y - pointTwo.y == pathSlope * (robot.x+stopPoint.x - pointTwo.x)) {
-
-                if (pointOne == pointList.get(pointList.length())) {
-                    driving = false;
-                } else {
-                    currentPoint++;
-                    pointOne = pointList.get(currentPoint);
-                    pointTwo = pointList.get(currentPoint + 1);
+                if (pathLine.slope != 0 && !pathLine.vertical) {
+                    robotLine.setLine(robot, -1 / pathLine.slope);
+                } else if (pathLine.slope == 0) {
+                    robotLine.setVerticalLine(robot.x);
+                } else if (pathLine.vertical) {
+                    robotLine.setLine(robot, 0);
                 }
+
+                stopPoint.setPoint(0.5 * (Math.pow(velX, 2) * drift), 0.5 * (Math.pow(velY, 2) * drift));
+
+                target = target.subtract(stopPoint);
+
+                target = target.subtract(robot);
+                target.setPoint(target.x / Math.hypot(target.x, target.y) * 10, target.y / Math.hypot(target.x, target.y) * 10);
+
+                crossDist.setPoint((pathLine.intersection(robotLine).x - robot.x) * 1, (pathLine.intersection(robotLine).y - robot.y) * 1);
+                target = target.add(crossDist);
+
+                if (pointTwo.hasAngle) {
+                    setAngle = pointTwo.angle;
+                }
+
+                pointDrive(target, power);
+
+                opMode.telemetry.addData("robot x", velX);
+                opMode.telemetry.addData("robot y", velY);
+                opMode.telemetry.addData("current point", currentPoint);
+                opMode.telemetry.addData("update time", runtime.milliseconds());
+                opMode.telemetry.addData("fl", frontLeft.getPower());
+                opMode.telemetry.addData("fr", frontRight.getPower());
+                opMode.telemetry.addData("bl", backLeft.getPower());
+                opMode.telemetry.addData("br", backRight.getPower());
+                opMode.telemetry.update();
+                runtime.reset();
+
+                if (pointOne.y < pointTwo.y && pointOne.x != pointTwo.x) {
+                    if (robot.y + stopPoint.y - pointTwo.y >= -1 / pathLine.slope * (robot.x + stopPoint.x - pointTwo.x)) {
+
+                        if (currentPoint == pointList.length() - 1) {
+                            driving = false;
+                        } else {
+                            pointOne = pointList.get(currentPoint);
+                            pointTwo = pointList.get(currentPoint + 1);
+                            currentPoint++;
+                        }
+                    }
+                } else if (pointOne.y > pointTwo.y) {
+                    if (robot.y + stopPoint.y - pointTwo.y <= -1 / pathLine.slope * (robot.x + stopPoint.x - pointTwo.x)) {
+
+                        if (currentPoint == pointList.length() - 1) {
+                            driving = false;
+                        } else {
+                            pointOne = pointList.get(currentPoint);
+                            pointTwo = pointList.get(currentPoint + 1);
+                            currentPoint++;
+                        }
+                    }
+                } else if (pointOne.y == pointTwo.y && pointOne.x < pointTwo.x) {
+                    if (robot.x + stopPoint.x >= pointTwo.x) {
+
+                        if (pointTwo == pointList.get(pointList.length() - 1)) {
+                            driving = false;
+                        } else {
+                            pointOne = pointList.get(currentPoint);
+                            pointTwo = pointList.get(currentPoint + 1);
+                            currentPoint++;
+                        }
+                    }
+                } else if (pointOne.y == pointTwo.y && pointOne.x > pointTwo.x) {
+                    if (robot.x + stopPoint.x <= pointTwo.x) {
+
+                        if (pointTwo == pointList.get(pointList.length() - 1)) {
+                            driving = false;
+                        } else {
+                            pointOne = pointList.get(currentPoint);
+                            pointTwo = pointList.get(currentPoint + 1);
+                            currentPoint++;
+                        }
+                    }
+                } else if (pointOne.x == pointTwo.x) {
+                    if (pointOne.y < pointTwo.y) {
+                        if (robot.y + stopPoint.y >= pointTwo.y) {
+                            if (pointTwo == pointList.get(pointList.length() - 1)) {
+                                driving = false;
+                            } else {
+                                pointOne = pointList.get(currentPoint);
+                                pointTwo = pointList.get(currentPoint + 1);
+                                currentPoint++;
+                            }
+                        }
+                    } else if (pointOne.y > pointTwo.y) {
+                        if (robot.y + stopPoint.y <= pointTwo.y) {
+                            if (pointTwo == pointList.get(pointList.length() - 1)) {
+                                driving = false;
+                            } else {
+                                pointOne = pointList.get(currentPoint);
+                                pointTwo = pointList.get(currentPoint + 1);
+                                currentPoint++;
+                            }
+                        }
+                    }
+                }
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+            } catch (Exception e) {
+                opMode.telemetry.addData("exception", e);
             }
         }
 
+        double errX;
+        double errY;
+        double finishPower;
 
-}
+        while(!(Math.pow(robot.x - pointTwo.x, 2) + Math.pow(robot.y - pointTwo.y, 2) < 1) && !opMode.isStopRequested()) {
+            errX = robot.x - pointTwo.x;
+            errY = robot.y - pointTwo.y;
+            finishPower = Math.sqrt(Math.pow(errX, 2) + Math.pow(errY, 2)) / 20;
+            if (finishPower > power) {
+                finishPower = power;
+            }
+            pointDrive(pointTwo, finishPower);
+        }
+        stop();
+    }
 
 
     //IMU angle correction methods
 
     public double checkDirection() {
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        double angles = Math.toDegrees(-currentAngle + Math.PI/2);
 
-        double deltaAngle = angles.firstAngle - lastAngles.firstAngle;
+        double deltaAngle = angles - lastAngles;
 
         if (deltaAngle < -180) {
             deltaAngle += 360;
@@ -254,13 +366,13 @@ public class Drive extends Config {
 
         //gain = mult * angle;
 
-        correction = -checkAngle * gain;        // reverse sign of angle for correction.
+        correction = -(checkAngle-setAngle) * gain;        // reverse sign of angle for correction.
 
         return correction;
     }
 
     public void resetAngle() {
-        lastAngles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
+        lastAngles = 0;
 
         IMUAngle = 0;
     }
@@ -276,6 +388,7 @@ public class Drive extends Config {
     protected class PositionTracking extends Thread {
         public void run() {
             try {
+
                 double robotX = 0;
                 double robotY = 0;
                 
@@ -295,8 +408,9 @@ public class Drive extends Config {
 
                 int loopEvent = 0;
 
-                while(!Thread.interrupted()) {
-                    currentAngle = (encoderDistanceY1() - encoderDistanceY2())/(2*encoderRadius);
+                while(!Thread.interrupted() && opMode.opModeIsActive()) {
+
+                    currentAngle = (encoderDistanceY2() - encoderDistanceY1())/(encoderRadius) + (Math.PI / 2);
 
                     deltaEncoderX = encoderDistanceX() - lastEncoderX;
                     deltaEncoderY = encoderDistanceY() - lastEncoderY;
@@ -308,11 +422,12 @@ public class Drive extends Config {
                     robotY += deltaY;
                     robot.setPoint(robotX, robotY);
 
-                    if(loopEvent%5==0) {
+                    if(loopEvent==5) {
                         velX = (robot.x - lastVelX) * 20;
                         velY = (robot.y - lastVelY) * 20;
                         lastVelX = robot.x;
                         lastVelY = robot.y;
+                        loopEvent = 0;
                     }
 
                     lastEncoderX = encoderDistanceX();
@@ -320,11 +435,20 @@ public class Drive extends Config {
 
                     loopEvent++;
 
+//                    opMode.telemetry.addData("robot x", robotX);
+//                    opMode.telemetry.addData("robot y", robotY);
+//                    opMode.telemetry.addData("robot.x", robot.x);
+//                    opMode.telemetry.addData("robot.y", robot.y);
+//                    opMode.telemetry.addData("angle", currentAngle);
+//                    opMode.telemetry.update();
+
                     try {
                         Thread.sleep(10);
                     } catch(InterruptedException e) {
                         return;
                     }
+
+                    Thread.yield();
                 }
 
             } catch(Exception e) {

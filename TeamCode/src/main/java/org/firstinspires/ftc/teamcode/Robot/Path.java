@@ -2,12 +2,21 @@ package org.firstinspires.ftc.teamcode.Robot;
 
 import java.util.ArrayList;
 
-public class PointArray {
+public class Path {
 
     ArrayList<Point> pointList = new ArrayList<>();
 
-    public void appendPoint(double x, double y) {
+    public void addPoint(double x, double y, double angle) {
+        Point point = new Point(x, y, angle);
+        pointList.add(point);
+    }
+
+    public void addPoint(double x, double y) {
         Point point = new Point(x, y);
+        pointList.add(point);
+    }
+
+    public void addPoint(Point point) {
         pointList.add(point);
     }
 
