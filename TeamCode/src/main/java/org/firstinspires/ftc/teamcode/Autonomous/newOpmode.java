@@ -6,23 +6,31 @@ import org.firstinspires.ftc.teamcode.AutoSide.RedAuto;
 import org.firstinspires.ftc.teamcode.Robot.Drive;
 import org.firstinspires.ftc.teamcode.Robot.Path;
 
-@Autonomous(name="odometry")
+@Autonomous(name="wes sly")
 public class newOpmode extends RedAuto {
     Drive robot = new Drive(this);
     Path points = new Path();
     @Override
     public void runOpMode() {
         robot.init(hardwareMap);
-        robot.doIMU();
+        robot.reverse();
         telemetry.addData("Waiting for", "start");
         telemetry.update();
         waitForStart();
         robot.startPositionTracking();
-        points.addPoint(20,40);
-        points.addPoint(40,0);
+        robot.foundationServo.setPosition(0.3);
+        points.addPoint(0,2);
+        points.addPoint(-36, 2,0);
+        points.addPoint(-36, 32);
+        robot.runPath(points, 0.5, 2);
+        points.clear();
+        points.addPoint(-32, 24);
+        points.addPoint(-30, 16, 35);
+        points.addPoint(-26, 6, 90);
+        points.addPoint(-42, 12, 90);
+
         telemetry.addData("Ready", "tracking started and points appended");
         telemetry.update();
-        robot.runPath(points, 0.5, 2);
         while (opModeIsActive()) {
 
             telemetry.addData("robot x", robot.x());

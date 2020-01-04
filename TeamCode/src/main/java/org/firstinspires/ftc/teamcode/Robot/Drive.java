@@ -232,6 +232,8 @@ public class Drive extends Config {
 
                 if (pointTwo.hasAngle) {
                     setAngle = pointTwo.angle;
+                } else {
+                    setAngle = -Math.toDegrees(Math.atan2(velY, velX))-90;
                 }
 
                 pointDrive(target, power);

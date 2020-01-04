@@ -31,6 +31,7 @@ public class Config {
     public Servo rightStabilization = null;
     public Servo leftGrip  = null;
     public Servo rightGrip = null;
+    public Servo foundationServo = null;
     public BNO055IMU imu      = null;
     HardwareMap hwMap = null;
     boolean IMU=false;
@@ -63,6 +64,8 @@ public class Config {
         rightStabilization = hwMap.get(Servo.class, "right stabilization");
         leftGrip = hwMap.get(Servo.class, "left grip");
         rightGrip = hwMap.get(Servo.class, "right grip");
+
+        foundationServo = hwMap.get(Servo.class, "armServo");
 
         frontRight.setPower(0);
         frontLeft.setPower(0);

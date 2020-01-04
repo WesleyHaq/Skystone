@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.TeleOp;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.firstinspires.ftc.teamcode.Robot.Config;
 import org.firstinspires.ftc.teamcode.Robot.Drive;
@@ -16,7 +17,10 @@ public class PhantomTeleOp extends LinearOpMode {
     double backLeft;
     double backRight;
     double side;
-    double position = 0.25;
+    double position = 0.15;
+    boolean grip;
+    double lift;
+
 
     boolean pressed = false;
 
@@ -27,9 +31,18 @@ public class PhantomTeleOp extends LinearOpMode {
 
         robot.init(hardwareMap);
 
-        robot.motorsOn();
+        robot.frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robot.frontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robot.backLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        robot.backRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        robot.lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         waitForStart();
+
+        robot.motorsOn();
+        robot.lift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         robot.startPositionTracking();
 
@@ -58,33 +71,63 @@ public class PhantomTeleOp extends LinearOpMode {
             robot.intake1.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
             robot.intake2.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
 
-            robot.lift.setPower(gamepad2.left_trigger - gamepad2.right_trigger);
-
-            if (gamepad2.left_bumper && position < 1) {
-                position += 0.03;
+            if(robot.lift.getCurrentPosition() > 0 && -gamepad2.left_stick_y < 0) {
+                lift = -robot.lift.getCurrentPosition()/320;
+                if (lift < -gamepad2.left_stick_y) {
+                    lift = -gamepad2.left_stick_y;
+                }
             }
-            if (gamepad2.right_bumper && position > 0.25) {
-                position -= 0.03;
+            else if((robot.lift.getCurrentPosition() < 640 && -gamepad2.left_stick_y > 0)) {
+                lift = -gamepad2.left_stick_y;
+            } else if (robot.lift.getCurrentPosition() < 0) {
+                lift = 0.2;
+            } else if (robot.lift.getCurrentPosition() > 640) {
+                lift = -0.2;
+            } else {
+                lift = 0;
+            }
+            robot.lift.setPower(lift);
+            telemetry.addData("lift", robot.lift.getCurrentPosition());
+
+            if ((position > 0.15 && gamepad2.left_stick_x < 0) || (position < 1 && gamepad2.left_stick_x > 0)) {
+                position += gamepad2.left_stick_x * 0.05;
+            }
+
+            if(position < 0.23) {
+                grip = false;
+            } else {
+                grip = true;
             }
 
             if (gamepad2.x) {
+                grip = !grip;
+            }
+// hello Wesley guess who wrote this messege. Answer is [REDACTED] lol. AHAHAHAHAHAH
+            if (grip) {
                 robot.leftGrip.setPosition(0.75);
                 robot.rightGrip.setPosition(0.25);
             }
             else {
-                robot.leftGrip.setPosition(0.9);
-                robot.rightGrip.setPosition(0.1);
+                robot.leftGrip.setPosition(0.87);
+                robot.rightGrip.setPosition(0.07);
             }
 
-            robot.leftBase.setPosition(-position + 1);
-            robot.rightBase.setPosition(position);
-            robot.leftStabilization.setPosition(position*1.15 - 0.05);
-            robot.rightStabilization.setPosition(-position*1.15+1.05);
+            if(gamepad2.dpad_down) {
+                robot.foundationServo.setPosition(0);
+            }
+            if(gamepad2.dpad_up) {
+                robot.foundationServo.setPosition(0.3);
+            }
 
-            robot.frontLeft.setPower(frontLeft);
-            robot.frontRight.setPower(frontRight);
-            robot.backLeft.setPower(backLeft);
-            robot.backRight.setPower(backRight);
+            robot.leftBase.setPosition(-(Math.abs(position-0.24)+0.24) + 1);
+            robot.rightBase.setPosition((Math.abs(position-0.24)+0.24));
+            robot.leftStabilization.setPosition((Math.abs(position-0.24)+0.24)*1.13 - 0.07);
+            robot.rightStabilization.setPosition(-(Math.abs(position-0.24)+0.24)*1.13 + 1.07);
+
+            robot.frontLeft.setPower(frontLeft*power);
+            robot.frontRight.setPower(frontRight*power);
+            robot.backLeft.setPower(backLeft*power);
+            robot.backRight.setPower(backRight*power);
 
             telemetry.addData("robot x", robot.x());
             telemetry.addData("robot y", robot.y());
