@@ -109,6 +109,10 @@ public class Drive extends Config {
 
     double vX;
     double vY;
+
+    public void setAngle(double angle) {
+        setAngle = angle;
+    }
     
     public void velocityReset() {
         vX = encoderDistanceX();
@@ -162,14 +166,14 @@ public class Drive extends Config {
         double rX = xPos - robot.x;
         double rY = yPos - robot.y;
         double distance = Math.sqrt(Math.pow(rX, 2) + Math.pow(rY, 2));
-        double angle = Math.atan2(rY, rX) - currentAngle;
+        double angle = Math.atan2(rY, rX);// + (currentAngle - Math.PI/2);
         angle -= Math.PI/4;
 
 
-        frontLeft.setPower(Math.cos(angle) * power + checkDirection());
-        frontRight.setPower(Math.sin(angle) * power - checkDirection());
-        backLeft.setPower(Math.sin(angle) * power + checkDirection());
-        backRight.setPower(Math.cos(angle) * power - checkDirection());
+        frontLeft.setPower(Math.cos(angle) * power );//+ checkDirection());
+        frontRight.setPower(Math.sin(angle) * power );//- checkDirection());
+        backLeft.setPower(Math.sin(angle) * power );//+ checkDirection());
+        backRight.setPower(Math.cos(angle) * power );//- checkDirection());
     }
 
     public void pointDrive(Point point, double power) {
@@ -211,51 +215,100 @@ public class Drive extends Config {
 
         while (driving && !opMode.isStopRequested()) {
 
-                target.setPoint(pointTwo);
+            target.setPoint(pointTwo);
 
-                pathLine.setLine(pointOne, pointTwo);
+            pathLine.setLine(pointOne, pointTwo);
 
-                if (pathLine.slope != 0 && !pathLine.vertical) {
-                    robotLine.setLine(robot, -1 / pathLine.slope);
-                } else if (pathLine.slope == 0) {
-                    robotLine.setVerticalLine(robot.x);
-                } else if (pathLine.vertical) {
-                    robotLine.setLine(robot, 0);
-                }
+            if (pathLine.slope != 0 && !pathLine.vertical) {
+                robotLine.setLine(robot, -1 / pathLine.slope);
+            } else if (pathLine.slope == 0) {
+                robotLine.setVerticalLine(robot.x);
+            } else if (pathLine.vertical) {
+                robotLine.setLine(robot, 0);
+            }
 
-                stopPoint.setPoint(0.5 * (Math.pow(velX, 2) * drift), 0.5 * (Math.pow(velY, 2) * drift));
+            stopPoint.setPoint(0.5 * (Math.pow(velX, 2) * drift), 0.5 * (Math.pow(velY, 2) * drift));
 
-                target = target.subtract(stopPoint);
+            //target = target.subtract(stopPoint);
 
-                target = target.subtract(robot);
-                target.setPoint(target.x / Math.hypot(target.x, target.y) * 10, target.y / Math.hypot(target.x, target.y) * 10);
+            //target = target.subtract(robot);
+            //target.setPoint(target.x / Math.hypot(target.x, target.y) * 10, target.y / Math.hypot(target.x, target.y) * 10);
+            //target = target.add(robot);
 
-                crossDist.setPoint((pathLine.intersection(robotLine).x - robot.x) * 1, (pathLine.intersection(robotLine).y - robot.y) * 1);
+            if (drift != 1100) {
+                crossDist.setPoint((pathLine.intersection(robotLine).x - robot.x) / drift, (pathLine.intersection(robotLine).y - robot.y) / drift);
                 target = target.add(crossDist);
+            }
 
-                if (pointTwo.hasAngle) {
-                    setAngle = pointTwo.angle;
-                } else {
-                    //setAngle = -Math.toDegrees(Math.atan2(velY, velX))-90;
+            if (pointTwo.hasAngle) {
+                setAngle = pointTwo.angle;
+            } else {
+                //setAngle = -Math.toDegrees(Math.atan2(velY, velX))-90;
+            }
+
+            pointDrive(target.x, target.y, power);
+
+            opMode.telemetry.addData("target", target.x);
+            opMode.telemetry.addData("target", target.y);
+            opMode.telemetry.addData("current point", currentPoint);
+            opMode.telemetry.addData("robot x", robot.x);
+            opMode.telemetry.addData("robot y", robot.y);
+            opMode.telemetry.addData("check", checkDirection());
+            opMode.telemetry.addData("fl", frontLeft.getPower());
+            opMode.telemetry.addData("fr", frontRight.getPower());
+            opMode.telemetry.addData("bl", backLeft.getPower());
+            opMode.telemetry.addData("br", backRight.getPower());
+            opMode.telemetry.update();
+            runtime.reset();
+
+            if (pointOne.y < pointTwo.y && pointOne.x != pointTwo.x) {
+                if (robot.y + stopPoint.y - pointTwo.y >= -1 / pathLine.slope * (robot.x + stopPoint.x - pointTwo.x)) {
+
+                    if (currentPoint == pointList.length() - 1) {
+                        driving = false;
+                    } else {
+                        pointOne = pointList.get(currentPoint);
+                        pointTwo = pointList.get(currentPoint + 1);
+                        currentPoint++;
+                    }
                 }
+            } else if (pointOne.y > pointTwo.y) {
+                if (robot.y + stopPoint.y - pointTwo.y <= -1 / pathLine.slope * (robot.x + stopPoint.x - pointTwo.x)) {
 
-                pointDrive(target, power);
+                    if (currentPoint == pointList.length() - 1) {
+                        driving = false;
+                    } else {
+                        pointOne = pointList.get(currentPoint);
+                        pointTwo = pointList.get(currentPoint + 1);
+                        currentPoint++;
+                    }
+                }
+            } else if (pointOne.y == pointTwo.y && pointOne.x < pointTwo.x) {
+                if (robot.x + stopPoint.x >= pointTwo.x) {
 
-                opMode.telemetry.addData("robot x", velX);
-                opMode.telemetry.addData("robot y", velY);
-                opMode.telemetry.addData("current point", currentPoint);
-                opMode.telemetry.addData("update time", runtime.milliseconds());
-                opMode.telemetry.addData("fl", frontLeft.getPower());
-                opMode.telemetry.addData("fr", frontRight.getPower());
-                opMode.telemetry.addData("bl", backLeft.getPower());
-                opMode.telemetry.addData("br", backRight.getPower());
-                opMode.telemetry.update();
-                runtime.reset();
+                    if (pointTwo == pointList.get(pointList.length() - 1)) {
+                        driving = false;
+                    } else {
+                        pointOne = pointList.get(currentPoint);
+                        pointTwo = pointList.get(currentPoint + 1);
+                        currentPoint++;
+                    }
+                }
+            } else if (pointOne.y == pointTwo.y && pointOne.x > pointTwo.x) {
+                if (robot.x + stopPoint.x <= pointTwo.x) {
 
-                if (pointOne.y < pointTwo.y && pointOne.x != pointTwo.x) {
-                    if (robot.y + stopPoint.y - pointTwo.y >= -1 / pathLine.slope * (robot.x + stopPoint.x - pointTwo.x)) {
-
-                        if (currentPoint == pointList.length() - 1) {
+                    if (pointTwo == pointList.get(pointList.length() - 1)) {
+                        driving = false;
+                    } else {
+                        pointOne = pointList.get(currentPoint);
+                        pointTwo = pointList.get(currentPoint + 1);
+                        currentPoint++;
+                    }
+                }
+            } else if (pointOne.x == pointTwo.x) {
+                if (pointOne.y < pointTwo.y) {
+                    if (robot.y + stopPoint.y >= pointTwo.y) {
+                        if (pointTwo == pointList.get(pointList.length() - 1)) {
                             driving = false;
                         } else {
                             pointOne = pointList.get(currentPoint);
@@ -264,61 +317,17 @@ public class Drive extends Config {
                         }
                     }
                 } else if (pointOne.y > pointTwo.y) {
-                    if (robot.y + stopPoint.y - pointTwo.y <= -1 / pathLine.slope * (robot.x + stopPoint.x - pointTwo.x)) {
-
-                        if (currentPoint == pointList.length() - 1) {
-                            driving = false;
-                        } else {
-                            pointOne = pointList.get(currentPoint);
-                            pointTwo = pointList.get(currentPoint + 1);
-                            currentPoint++;
-                        }
-                    }
-                } else if (pointOne.y == pointTwo.y && pointOne.x < pointTwo.x) {
-                    if (robot.x + stopPoint.x >= pointTwo.x) {
-
+                    if (robot.y + stopPoint.y <= pointTwo.y) {
                         if (pointTwo == pointList.get(pointList.length() - 1)) {
                             driving = false;
                         } else {
                             pointOne = pointList.get(currentPoint);
                             pointTwo = pointList.get(currentPoint + 1);
                             currentPoint++;
-                        }
-                    }
-                } else if (pointOne.y == pointTwo.y && pointOne.x > pointTwo.x) {
-                    if (robot.x + stopPoint.x <= pointTwo.x) {
-
-                        if (pointTwo == pointList.get(pointList.length() - 1)) {
-                            driving = false;
-                        } else {
-                            pointOne = pointList.get(currentPoint);
-                            pointTwo = pointList.get(currentPoint + 1);
-                            currentPoint++;
-                        }
-                    }
-                } else if (pointOne.x == pointTwo.x) {
-                    if (pointOne.y < pointTwo.y) {
-                        if (robot.y + stopPoint.y >= pointTwo.y) {
-                            if (pointTwo == pointList.get(pointList.length() - 1)) {
-                                driving = false;
-                            } else {
-                                pointOne = pointList.get(currentPoint);
-                                pointTwo = pointList.get(currentPoint + 1);
-                                currentPoint++;
-                            }
-                        }
-                    } else if (pointOne.y > pointTwo.y) {
-                        if (robot.y + stopPoint.y <= pointTwo.y) {
-                            if (pointTwo == pointList.get(pointList.length() - 1)) {
-                                driving = false;
-                            } else {
-                                pointOne = pointList.get(currentPoint);
-                                pointTwo = pointList.get(currentPoint + 1);
-                                currentPoint++;
-                            }
                         }
                     }
                 }
+            }
             Thread.yield();
         }
 
@@ -329,7 +338,7 @@ public class Drive extends Config {
         while(!(Math.pow(robot.x - pointTwo.x, 2) + Math.pow(robot.y - pointTwo.y, 2) < 1) && !opMode.isStopRequested()) {
             errX = robot.x - pointTwo.x;
             errY = robot.y - pointTwo.y;
-            finishPower = Math.sqrt(Math.pow(errX, 2) + Math.pow(errY, 2)) / 20;
+            finishPower = Math.sqrt(Math.pow(errX, 2) + Math.pow(errY, 2)) / 30;
             if (finishPower > power) {
                 finishPower = power;
             }
@@ -360,7 +369,7 @@ public class Drive extends Config {
         // You will have to experiment with your robot to get small smooth direction changes
         // to stay on a straight line.
         double correction;
-        double gain = 0.025;
+        double gain = 0.05;
 
         //gain = mult * angle;
 

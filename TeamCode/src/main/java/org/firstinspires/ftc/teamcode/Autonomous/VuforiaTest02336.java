@@ -41,8 +41,8 @@ public class VuforiaTest02336 extends RedAuto{
 
     boolean notFound;
 
-    Point target;
-    double stoneX;
+    Point target = new Point(0,0);
+    double stoneX = 0;
 
     // IMPORTANT: If you are using a USB WebCam, you must select CAMERA_CHOICE = BACK; and PHONE_IS_PORTRAIT = false;
     private static final VuforiaLocalizer.CameraDirection CAMERA_CHOICE = BACK;
