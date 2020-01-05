@@ -54,7 +54,7 @@ public class Line {
         x(a - c) = d - b
         x = (d - b) / (a - c)
          */
-        if(this.slope != line.slope) {
+        if(this.slope != line.slope || this.vertical || line.vertical) {
             double x;
             double y;
 

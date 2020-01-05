@@ -202,11 +202,14 @@ public class Drive extends Config {
         Line robotLine = new Line(0, 0);
 
         int currentPoint = 0;
-        Point pointOne = robot;
-        Point pointTwo = pointList.get(0);
+
+        Point pointOne = new Point(0,0);
+        Point pointTwo = new Point(0,0);
+
+        pointOne.setPoint(robot);
+        pointTwo.setPoint(pointList.get(0));
 
         while (driving && !opMode.isStopRequested()) {
-            try {
 
                 target.setPoint(pointTwo);
 
@@ -233,7 +236,7 @@ public class Drive extends Config {
                 if (pointTwo.hasAngle) {
                     setAngle = pointTwo.angle;
                 } else {
-                    setAngle = -Math.toDegrees(Math.atan2(velY, velX))-90;
+                    //setAngle = -Math.toDegrees(Math.atan2(velY, velX))-90;
                 }
 
                 pointDrive(target, power);
@@ -316,14 +319,7 @@ public class Drive extends Config {
                         }
                     }
                 }
-                try {
-                    Thread.sleep(20);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-            } catch (Exception e) {
-                opMode.telemetry.addData("exception", e);
-            }
+            Thread.yield();
         }
 
         double errX;

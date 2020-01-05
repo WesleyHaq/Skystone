@@ -13,16 +13,17 @@ public class newOpmode extends RedAuto {
     @Override
     public void runOpMode() {
         robot.init(hardwareMap);
-        robot.reverse();
         telemetry.addData("Waiting for", "start");
         telemetry.update();
         waitForStart();
+        telemetry.update();
         robot.startPositionTracking();
         robot.foundationServo.setPosition(0.3);
         points.addPoint(0,2);
-        points.addPoint(-36, 2,0);
+        points.addPoint(-36, 2);
         points.addPoint(-36, 32);
-        robot.runPath(points, 0.5, 2);
+        telemetry.addData("hi bob!", "hello!");
+        robot.runPath(points, 0.5, 0);
         points.clear();
         points.addPoint(-32, 24);
         points.addPoint(-30, 16, 35);
