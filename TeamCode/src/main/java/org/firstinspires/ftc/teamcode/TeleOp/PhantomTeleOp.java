@@ -102,7 +102,7 @@ public class PhantomTeleOp extends LinearOpMode {
             if (gamepad2.x) {
                 grip = !grip;
             }
-// hello Wesley guess who wrote this messege. Answer is [REDACTED] lol. AHAHAHAHAHAH
+
             if (grip) {
                 robot.leftGrip.setPosition(0.75);
                 robot.rightGrip.setPosition(0.25);
@@ -131,6 +131,7 @@ public class PhantomTeleOp extends LinearOpMode {
 
             telemetry.addData("robot x", robot.x());
             telemetry.addData("robot y", robot.y());
+            telemetry.addData("angle", robot.getAngle());
             telemetry.addData("vel x", robot.getVelX());
             telemetry.addData("vel y", robot.getVelY());
             telemetry.addData("fl", robot.frontLeft.getPower());

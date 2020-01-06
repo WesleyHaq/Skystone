@@ -36,7 +36,7 @@ public class Drive extends Config {
     double velY = 0;
 
     //current angle in radians
-    private double currentAngle = 0;
+    double currentAngle = 0;
     //variable used for IMU direction correction
     double checkAngle;
     double setAngle = 0;
@@ -93,18 +93,9 @@ public class Drive extends Config {
         return velY;
     }
     
-    //returns calculated angle 0-360
+
     public double getAngle() {
-
-        Orientation angles = imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES);
-
-        IMUAngle = angles.firstAngle;
-
-        if (IMUAngle < 0) {
-            IMUAngle += 360;
-        }
-
-        return IMUAngle;
+        return Math.toDegrees(-currentAngle + Math.PI/2);
     }
 
     double vX;
@@ -166,14 +157,14 @@ public class Drive extends Config {
         double rX = xPos - robot.x;
         double rY = yPos - robot.y;
         double distance = Math.sqrt(Math.pow(rX, 2) + Math.pow(rY, 2));
-        double angle = Math.atan2(rY, rX);// + (currentAngle - Math.PI/2);
+        double angle = Math.atan2(rY, rX) + (currentAngle - Math.PI/2);
         angle -= Math.PI/4;
 
 
-        frontLeft.setPower(Math.cos(angle) * power );//+ checkDirection());
-        frontRight.setPower(Math.sin(angle) * power );//- checkDirection());
-        backLeft.setPower(Math.sin(angle) * power );//+ checkDirection());
-        backRight.setPower(Math.cos(angle) * power );//- checkDirection());
+        frontLeft.setPower(Math.cos(angle) * power + checkDirection());
+        frontRight.setPower(Math.sin(angle) * power - checkDirection());
+        backLeft.setPower(Math.sin(angle) * power + checkDirection());
+        backRight.setPower(Math.cos(angle) * power - checkDirection());
     }
 
     public void pointDrive(Point point, double power) {
@@ -229,13 +220,13 @@ public class Drive extends Config {
 
             stopPoint.setPoint(0.5 * (Math.pow(velX, 2) * drift), 0.5 * (Math.pow(velY, 2) * drift));
 
-            //target = target.subtract(stopPoint);
+            target = target.subtract(stopPoint);
 
-            //target = target.subtract(robot);
-            //target.setPoint(target.x / Math.hypot(target.x, target.y) * 10, target.y / Math.hypot(target.x, target.y) * 10);
-            //target = target.add(robot);
+            target = target.subtract(robot);
+            target.setPoint(target.x / Math.hypot(target.x, target.y) * 10, target.y / Math.hypot(target.x, target.y) * 10);
+            target = target.add(robot);
 
-            if (drift != 1100) {
+            if (drift != 0) {
                 crossDist.setPoint((pathLine.intersection(robotLine).x - robot.x) / drift, (pathLine.intersection(robotLine).y - robot.y) / drift);
                 target = target.add(crossDist);
             }
@@ -378,6 +369,7 @@ public class Drive extends Config {
         return correction;
     }
 
+
     public void resetAngle() {
         lastAngles = 0;
 
@@ -411,7 +403,7 @@ public class Drive extends Config {
                 double lastVelX = 0;
                 double lastVelY = 0;
 
-                final double encoderRadius = 14;
+                final double encoderRadius = 13;
 
                 int loopEvent = 0;
 
@@ -446,7 +438,8 @@ public class Drive extends Config {
 //                    opMode.telemetry.addData("robot y", robotY);
 //                    opMode.telemetry.addData("robot.x", robot.x);
 //                    opMode.telemetry.addData("robot.y", robot.y);
-//                    opMode.telemetry.addData("angle", currentAngle);
+//                    opMode.telemetry.addData("currntAngle", currentAngle);
+//                    opMode.telemetry.addData("angle degrees", getAngle());
 //                    opMode.telemetry.update();
 
                     try {
