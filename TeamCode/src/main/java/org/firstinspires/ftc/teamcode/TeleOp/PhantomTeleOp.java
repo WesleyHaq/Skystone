@@ -17,7 +17,7 @@ public class PhantomTeleOp extends LinearOpMode {
     double backLeft;
     double backRight;
     double side;
-    double position = 0.15;
+    double position = 0.19;
     boolean grip;
     double lift;
 
@@ -25,6 +25,7 @@ public class PhantomTeleOp extends LinearOpMode {
     boolean pressed = false;
 
     double power = 0.5;
+
 
     @Override
     public void runOpMode() {
@@ -68,32 +69,37 @@ public class PhantomTeleOp extends LinearOpMode {
             frontLeft = -gamepad1.left_stick_y - side;
             backLeft = -gamepad1.left_stick_y + side;
 
-            robot.intake1.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
-            robot.intake2.setPower(gamepad1.left_trigger - gamepad1.right_trigger);
+            robot.frontLeft.setPower(frontLeft*power);
+            robot.frontRight.setPower(frontRight*power);
+            robot.backLeft.setPower(backLeft*power);
+            robot.backRight.setPower(backRight*power);
 
-            if(robot.lift.getCurrentPosition() > 0 && -gamepad2.left_stick_y < 0) {
-                lift = -robot.lift.getCurrentPosition()/320;
-                if (lift < -gamepad2.left_stick_y) {
-                    lift = -gamepad2.left_stick_y;
-                }
+            robot.intake1.setPower((gamepad1.left_trigger - gamepad1.right_trigger)*0.75);
+            robot.intake2.setPower((gamepad1.left_trigger - gamepad1.right_trigger)*0.75);
+
+            if(robot.lift.getCurrentPosition() > -10 && -gamepad2.right_stick_y < 0) {
+                lift = -gamepad2.right_stick_y/4;
             }
-            else if((robot.lift.getCurrentPosition() < 640 && -gamepad2.left_stick_y > 0)) {
-                lift = -gamepad2.left_stick_y;
-            } else if (robot.lift.getCurrentPosition() < 0) {
-                lift = 0.2;
+            else if((robot.lift.getCurrentPosition() < 640 && -gamepad2.right_stick_y > 0)) {
+                lift = -gamepad2.right_stick_y;
+            } else if (robot.lift.getCurrentPosition() < -20) {
+                lift = 0.1;
             } else if (robot.lift.getCurrentPosition() > 640) {
-                lift = -0.2;
+                lift = -0.1;
             } else {
                 lift = 0;
             }
             robot.lift.setPower(lift);
             telemetry.addData("lift", robot.lift.getCurrentPosition());
 
-            if ((position > 0.15 && gamepad2.left_stick_x < 0) || (position < 1 && gamepad2.left_stick_x > 0)) {
+            if ((position > 0.19 && gamepad2.left_stick_x < 0) || (position < 1 && gamepad2.left_stick_x > 0)) {
                 position += gamepad2.left_stick_x * 0.05;
+                if(position < 0.19) {
+                    position = 0.19;
+                }
             }
 
-            if(position < 0.23) {
+            if(position < 0.24) {
                 grip = false;
             } else {
                 grip = true;
@@ -104,18 +110,18 @@ public class PhantomTeleOp extends LinearOpMode {
             }
 
             if (grip) {
-                robot.leftGrip.setPosition(0.75);
-                robot.rightGrip.setPosition(0.25);
+                robot.leftGrip.setPosition(0.55);
+                robot.rightGrip.setPosition(0.45);
             }
             else {
                 robot.leftGrip.setPosition(0.87);
                 robot.rightGrip.setPosition(0.07);
             }
 
-            if(gamepad2.dpad_down) {
+            if(gamepad1.dpad_down) {
                 robot.foundationServo.setPosition(0);
             }
-            if(gamepad2.dpad_up) {
+            if(gamepad1.dpad_up) {
                 robot.foundationServo.setPosition(0.3);
             }
 
@@ -124,10 +130,7 @@ public class PhantomTeleOp extends LinearOpMode {
             robot.leftStabilization.setPosition((Math.abs(position-0.24)+0.24)*1.13 - 0.07);
             robot.rightStabilization.setPosition(-(Math.abs(position-0.24)+0.24)*1.13 + 1.07);
 
-            robot.frontLeft.setPower(frontLeft*power);
-            robot.frontRight.setPower(frontRight*power);
-            robot.backLeft.setPower(backLeft*power);
-            robot.backRight.setPower(backRight*power);
+
 
             telemetry.addData("robot x", robot.x());
             telemetry.addData("robot y", robot.y());
@@ -139,8 +142,6 @@ public class PhantomTeleOp extends LinearOpMode {
             telemetry.addData("bl", robot.backLeft.getPower());
             telemetry.addData("br", robot.backRight.getPower());
             telemetry.update();
-
-            sleep(50);
         }
     }
 
